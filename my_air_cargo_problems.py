@@ -172,9 +172,17 @@ class AirCargoProblem(Problem):
         :param action: Action applied
         :return: resulting state after action
         """
-        # TODO implement
-        new_state = FluentState([], [])
-        return encode_state(new_state, self.state_map)
+
+        state = decode_state(state, self.state_map)
+
+        for effect_rem in action.effect_rem:
+            state.pos.remove(effect_rem)
+            state.neg.append(effect_rem)
+        for effect_add in action.effect_add:
+            state.pos.append(effect_add)
+            state.neg.remove(effect_add)
+
+        return encode_state(state, self.state_map)
 
     def goal_test(self, state: str) -> bool:
         """ Test the state to see if goal is reached
