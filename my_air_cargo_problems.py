@@ -67,9 +67,9 @@ class AirCargoProblem(Problem):
             :return: list of Action objects
             '''
             unloads = []
-            for plane in self.planes:
-                for airport in self.airports:
-                    for cargo in self.cargos:
+            for cargo in self.cargos:
+                for plane in self.planes:
+                    for airport in self.airports:
                         precond_pos = [
                             expr("In({}, {})".format(cargo, plane)),
                             expr("At({}, {})".format(plane, airport)),
