@@ -3,7 +3,6 @@ from aimacode.search import Problem
 from aimacode.utils import expr
 from lp_utils import decode_state
 
-
 class PgNode():
     ''' Base class for planning graph nodes.
 
@@ -220,8 +219,8 @@ class PlanningGraph():
         self.fs = decode_state(state, problem.state_map)
         self.serial = serial_planning
         self.all_actions = self.problem.actions_list + self.noop_actions(self.problem.state_map)
-        self.s_levels = [] # type: List[List[PgNode_s]]
-        self.a_levels = [] # type: List[List[PgNode_a]]
+        self.s_levels = []  # type: List[List[PgNode_s]]
+        self.a_levels = []  # type: List[List[PgNode_a]]
         self.create_graph()
 
     def noop_actions(self, literal_list):
@@ -309,15 +308,10 @@ class PlanningGraph():
         s_nodes = self.s_levels[level]  # type: set(PgNode_s)
         for action in self.all_actions:
             a_node = PgNode_a(action)
-            # At this stage, we are not sure if this action is applicable to any s_node
-            adding = False
             # Find matching pairs of state-action
             for matching_s_node in s_nodes.intersection(a_node.prenodes):  # type: PgNode_s
-                adding = True
                 matching_s_node.children.add(a_node)
                 a_node.parents.add(matching_s_node)
-            # If there's at least one matching s_node, add the a_node
-            if adding:
                 a_nodes.add(a_node)
 
         self.a_levels.append(a_nodes)
@@ -336,7 +330,7 @@ class PlanningGraph():
         s_nodes = set()
 
         # Scan and generate all possible s_nodes
-        for a_node in a_nodes: # type: PgNode_a
+        for a_node in a_nodes:  # type: PgNode_a
             s_nodes = s_nodes.union(a_node.effnodes)
 
         # Linking them up
@@ -413,7 +407,7 @@ class PlanningGraph():
 
     def interference_mutex(self, node_a1: PgNode_a, node_a2: PgNode_a) -> bool:
         '''
-        Test a pair of actions for mutual exclusion, returning True if the 
+        Test a pair of actions for mutual exclusion, returning True if the
         effect of one action is the negation of a precondition of the other.
 
         HINT: The Action instance associated with an action node is accessible
@@ -439,8 +433,17 @@ class PlanningGraph():
         :param a2:
         :return: bool
         '''
-        return len(set(a1.effect_add).intersection(set(a2.precond_neg))) + \
-               len(set(a1.effect_rem).intersection(set(a2.precond_pos))) > 0
+        for x in a1.effect_add:
+            for y in a2.precond_neg:
+                if x == y:
+                    return True
+
+        for x in a1.effect_rem:
+            for y in a2.precond_pos:
+                if x == y:
+                    return True
+
+        return False
 
     def competing_needs_mutex(self, node_a1: PgNode_a, node_a2: PgNode_a) -> bool:
         '''
@@ -525,24 +528,21 @@ class PlanningGraph():
         '''
         level_sum = 0
         # for each goal in the problem, determine the level cost, then add them together
-        (goal_states, goal_level, goal_is_achieved) = ([], [], [])
 
         goal_count = 0
         total_goal_count = len(self.problem.goal)
 
+        goal_states = set()
         for goal_expr in self.problem.goal:  # type: expr
-            goal_states.append(PgNode_s(goal_expr, True))
-            goal_level.append(0)
-            goal_is_achieved.append(False)
+            goal_states.add(PgNode_s(goal_expr, True))
 
         for i, s_nodes in enumerate(self.s_levels):
-            for j, goal_status in enumerate(goal_is_achieved):
-                if not goal_status:
-                    if goal_states[j] in s_nodes:
-                        # Found a goal! Mark it so that we don't look for it again
-                        goal_is_achieved[j] = True
-                        level_sum += i
-                        goal_count += 1
+            found_goals = set()
+            for x in s_nodes.intersection(goal_states):
+                found_goals.add(x)
+                goal_states.remove(x)
+                level_sum += i
+                goal_count += 1
 
             # We achieved all goals
             if goal_count == total_goal_count:
