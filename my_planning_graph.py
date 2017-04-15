@@ -425,8 +425,22 @@ class PlanningGraph():
         :param node_a2: PgNode_a
         :return: bool
         '''
-        # TODO test for Interference between nodes
+
+        if self.interfere_with(node_a2.action, node_a1.action) or self.interfere_with(node_a1.action, node_a2.action):
+            return True
+
         return False
+
+    def interfere_with(self, a1: Action, a2: Action) -> bool:
+        '''
+        Read: a1 interfere with a2
+        Test a pair of actions, return True if the effect of `a1` contradicts with the precondition of `a2`
+        :param a1:
+        :param a2:
+        :return: bool
+        '''
+        return len(set(a1.effect_add).intersection(set(a2.precond_neg))) + \
+               len(set(a1.effect_rem).intersection(set(a2.precond_pos))) > 0
 
     def competing_needs_mutex(self, node_a1: PgNode_a, node_a2: PgNode_a) -> bool:
         '''
@@ -439,7 +453,11 @@ class PlanningGraph():
         :return: bool
         '''
 
-        # TODO test for Competing Needs between nodes
+        for s1 in node_a1.parents:  # type: PgNode_s
+            for s2 in node_a2.parents:  # type: PgNode_ss
+                if s1.is_mutex(s2):
+                    return True
+
         return False
 
     def update_s_mutex(self, nodeset: set):
@@ -474,8 +492,7 @@ class PlanningGraph():
         :param node_s2: PgNode_s
         :return: bool
         '''
-        # TODO test for negation between nodes
-        return False
+        return node_s1.symbol == node_s2.symbol and node_s1.is_pos != node_s2.is_pos
 
     def inconsistent_support_mutex(self, node_s1: PgNode_s, node_s2: PgNode_s):
         '''
