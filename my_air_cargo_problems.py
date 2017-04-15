@@ -288,6 +288,7 @@ def air_cargo_p2() -> AirCargoProblem:
             else:
                 neg.append(expr('At({}, {})'.format(cargo, other_airport)))
 
+    for cargo in cargos:
         for plane in planes:
             neg.append(expr('In({}, {})'.format(cargo, plane)))
 
@@ -331,6 +332,7 @@ def air_cargo_p3() -> AirCargoProblem:
             else:
                 neg.append(expr('At({}, {})'.format(cargo, other_airport)))
 
+    for cargo in cargos:
         for plane in planes:
             neg.append(expr('In({}, {})'.format(cargo, plane)))
 
@@ -338,8 +340,8 @@ def air_cargo_p3() -> AirCargoProblem:
 
     goal = [
         expr('At(C1, JFK)'),
-        expr('At(C2, SFO)'),
         expr('At(C3, JFK)'),
+        expr('At(C2, SFO)'),
         expr('At(C4, SFO)'),
     ]
 
