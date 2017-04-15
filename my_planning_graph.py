@@ -524,6 +524,28 @@ class PlanningGraph():
         :return: int
         '''
         level_sum = 0
-        # TODO implement
         # for each goal in the problem, determine the level cost, then add them together
+        (goal_states, goal_level, goal_is_achieved) = ([], [], [])
+
+        goal_count = 0
+        total_goal_count = len(self.problem.goal)
+
+        for goal_expr in self.problem.goal:  # type: expr
+            goal_states.append(PgNode_s(goal_expr, True))
+            goal_level.append(0)
+            goal_is_achieved.append(False)
+
+        for i, s_nodes in enumerate(self.s_levels):
+            for j, goal_status in enumerate(goal_is_achieved):
+                if not goal_status:
+                    if goal_states[j] in s_nodes:
+                        # Found a goal! Mark it so that we don't look for it again
+                        goal_is_achieved[j] = True
+                        level_sum += i
+                        goal_count += 1
+
+            # We achieved all goals
+            if goal_count == total_goal_count:
+                break
+
         return level_sum
