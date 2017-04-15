@@ -146,7 +146,7 @@ class AirCargoProblem(Problem):
         """
         possible_actions = []
 
-        state = decode_state(state,self.state_map)
+        state = decode_state(state, self.state_map)
 
         for action in self.actions_list:
             ok = True
@@ -259,8 +259,8 @@ def air_cargo_p1() -> AirCargoProblem:
 
 
 def air_cargo_p2() -> AirCargoProblem:
-    cargos = ['C1','C2','C3']
-    planes = ['P1','P2','P3']
+    cargos = ['C1', 'C2', 'C3']
+    planes = ['P1', 'P2', 'P3']
     airports = ['JFK', 'SFO', 'ATL']
     plane_to_airport = {
         'P1': 'SFO',
@@ -274,14 +274,14 @@ def air_cargo_p2() -> AirCargoProblem:
     }
     pos = []
     neg = []
-    for plane, this_airport in plane_to_airport:
+    for plane, this_airport in plane_to_airport.items():
         for other_airport in airports:
             if other_airport == this_airport:
                 pos.append(expr('At({}, {})'.format(plane, this_airport)))
             else:
                 neg.append(expr('At({}, {})'.format(plane, other_airport)))
 
-    for cargo, this_airport in cargo_to_airport:
+    for cargo, this_airport in cargo_to_airport.items():
         for other_airport in airports:
             if this_airport == other_airport:
                 pos.append(expr('At({}, {})'.format(cargo, this_airport)))
@@ -291,7 +291,7 @@ def air_cargo_p2() -> AirCargoProblem:
         for plane in planes:
             neg.append(expr('In({}, {})'.format(cargo, plane)))
 
-    init = FluentState(pos,neg)
+    init = FluentState(pos, neg)
 
     goal = [
         expr('At(C1, JFK)'),
@@ -317,14 +317,14 @@ def air_cargo_p3() -> AirCargoProblem:
     }
     pos = []
     neg = []
-    for plane, this_airport in plane_to_airport:
+    for plane, this_airport in plane_to_airport.items():
         for other_airport in airports:
             if other_airport == this_airport:
                 pos.append(expr('At({}, {})'.format(plane, this_airport)))
             else:
                 neg.append(expr('At({}, {})'.format(plane, other_airport)))
 
-    for cargo, this_airport in cargo_to_airport:
+    for cargo, this_airport in cargo_to_airport.items():
         for other_airport in airports:
             if this_airport == other_airport:
                 pos.append(expr('At({}, {})'.format(cargo, this_airport)))
@@ -334,7 +334,7 @@ def air_cargo_p3() -> AirCargoProblem:
         for plane in planes:
             neg.append(expr('In({}, {})'.format(cargo, plane)))
 
-    init = FluentState(pos,neg)
+    init = FluentState(pos, neg)
 
     goal = [
         expr('At(C1, JFK)'),
