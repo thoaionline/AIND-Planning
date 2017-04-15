@@ -69,7 +69,7 @@ class AirCargoProblem(Problem):
                             expr("In({}, {})".format(cargo, plane))
                         ]
                         effect_rem = [
-                            expr("At({}, {})".format(cargo, plane))
+                            expr("At({}, {})".format(cargo, airport))
                         ]
 
                         load = Action(
@@ -100,7 +100,7 @@ class AirCargoProblem(Problem):
                             expr("At({}, {})".format(cargo, airport))
                         ]
                         effect_rem = [
-                            expr("In({}, {})".format(cargo, airport))
+                            expr("In({}, {})".format(cargo, plane))
                         ]
 
                         unload = Action(
