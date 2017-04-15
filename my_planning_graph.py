@@ -3,6 +3,7 @@ from aimacode.search import Problem
 from aimacode.utils import expr
 from lp_utils import decode_state
 
+
 class PgNode():
     ''' Base class for planning graph nodes.
 
@@ -219,9 +220,26 @@ class PlanningGraph():
         self.fs = decode_state(state, problem.state_map)
         self.serial = serial_planning
         self.all_actions = self.problem.actions_list + self.noop_actions(self.problem.state_map)
+        self.actions_for_preconds = self.precond_to_action(self.all_actions)
         self.s_levels = []  # type: List[List[PgNode_s]]
         self.a_levels = []  # type: List[List[PgNode_a]]
         self.create_graph()
+
+    def precond_to_action(self, actions: Action):
+        precond_map = {}
+
+        # Initial both sets
+        for expr in self.problem.state_map:
+            precond_map[expr] = set()
+            precond_map[~expr] = set()
+
+        for action in actions:  # type: Action
+            for precond in action.precond_pos:
+                precond_map[precond].add(action)
+            for precond in action.precond_neg:
+                precond_map[~precond].add(action)
+
+        return precond_map
 
     def noop_actions(self, literal_list):
         '''create persistent action for each possible fluent
@@ -304,9 +322,14 @@ class PlanningGraph():
             adds A nodes to the current level in self.a_levels[level]
         '''
 
-        a_nodes = set()
+        possible_actions = set()
         s_nodes = self.s_levels[level]  # type: set(PgNode_s)
-        for action in self.all_actions:
+        for s_node in s_nodes:  # type: PgNode_s
+            for action in self.actions_for_preconds[s_node.literal]:
+                possible_actions.add(action)
+
+        a_nodes = set()
+        for action in possible_actions:
             a_node = PgNode_a(action)
             # Find matching pairs of state-action
             for matching_s_node in s_nodes.intersection(a_node.prenodes):  # type: PgNode_s
@@ -397,11 +420,13 @@ class PlanningGraph():
         :param node_a2: PgNode_a
         :return: bool
         '''
-        if len(set(node_a1.action.effect_add).intersection(set(node_a2.action.effect_rem))) > 0:
-            return True
+        for x in node_a1.action.effect_add:
+            if x in node_a2.action.effect_rem:
+                return True
 
-        if len(set(node_a1.action.effect_rem).intersection(set(node_a2.action.effect_add))) > 0:
-            return True
+        for x in node_a2.action.effect_add:
+            if x in node_a1.action.effect_rem:
+                return True
 
         return False
 
@@ -420,10 +445,8 @@ class PlanningGraph():
         :return: bool
         '''
 
-        if self.interfere_with(node_a2.action, node_a1.action) or self.interfere_with(node_a1.action, node_a2.action):
-            return True
-
-        return False
+        return self.interfere_with(node_a2.action, node_a1.action) or self.interfere_with(node_a1.action,
+                                                                                          node_a2.action)
 
     def interfere_with(self, a1: Action, a2: Action) -> bool:
         '''
