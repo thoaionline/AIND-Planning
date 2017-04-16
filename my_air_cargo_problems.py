@@ -210,7 +210,7 @@ class AirCargoProblem(Problem):
         condition.
         '''
         # requires implemented PlanningGraph class
-        pg = PlanningGraph(self, node.state)
+        pg = PlanningGraph(self, node.state, True, True)
         pg_levelsum = pg.h_levelsum()
         return pg_levelsum
 

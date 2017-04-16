@@ -204,7 +204,7 @@ class PlanningGraph():
     graph can be used to reason about 
     '''
 
-    def __init__(self, problem: Problem, state: str, serial_planning=True):
+    def __init__(self, problem: Problem, state: str, serial_planning=True, with_shortcut=False):
         '''
         :param problem: PlanningProblem (or subclass such as AirCargoProblem or HaveCakeProblem)
         :param state: str (will be in form TFTTFF... representing fluent states)
@@ -219,11 +219,21 @@ class PlanningGraph():
         self.problem = problem
         self.fs = decode_state(state, problem.state_map)
         self.serial = serial_planning
-        self.all_actions = self.problem.actions_list + self.noop_actions(self.problem.state_map)
-        self.actions_for_preconds = self.precond_to_action(self.all_actions)
+
+        if not hasattr(problem, 'all_actions'):
+            problem.all_actions = self.problem.actions_list + self.noop_actions(self.problem.state_map)
+            problem.actions_for_preconds = self.precond_to_action(problem.all_actions)
+            problem.goal_nodes = set()
+            for exp in problem.goal:
+                problem.goal_nodes.add(PgNode_s(exp, True))
+
+        self.all_actions = problem.all_actions
+        self.actions_for_preconds = problem.actions_for_preconds
+        self.goal_nodes = problem.goal_nodes
+
         self.s_levels = []  # type: List[List[PgNode_s]]
         self.a_levels = []  # type: List[List[PgNode_a]]
-        self.create_graph()
+        self.create_graph(with_shortcut)
 
     def precond_to_action(self, actions: Action):
         precond_map = {}
@@ -270,7 +280,7 @@ class PlanningGraph():
             action_list.append(act2)
         return action_list
 
-    def create_graph(self):
+    def create_graph(self, with_shortcut = False):
         ''' build a Planning Graph as described in Russell-Norvig 3rd Ed 10.3 or 2nd Ed 11.4
 
         The S0 initial level has been implemented for you.  It has no parents and includes all of
@@ -311,6 +321,20 @@ class PlanningGraph():
 
             if self.s_levels[level] == self.s_levels[level - 1]:
                 leveled = True
+
+            # This is an problem-specific optimisation
+            if with_shortcut and self.goal_nodes.issubset(self.s_levels[level]):
+                return
+
+        '''
+        Note: For the intention of this assignment, I don't believe it's necessary to search until the graph is leveled.
+        We can terminate as soon as as the goal state can be found/constructed at the last layer
+        
+        Add the following check for the speed up, inside above loop
+        
+            if self.goal_nodes.issubset(self.s_levels[level]):
+                return
+        '''
 
     def add_action_level(self, level):
         ''' add an A (action) level to the Planning Graph
