@@ -2,7 +2,7 @@ from aimacode.planning import Action
 from aimacode.search import Problem
 from aimacode.utils import expr
 from lp_utils import decode_state
-
+from sys import maxsize
 
 class PgNode():
     ''' Base class for planning graph nodes.
@@ -204,7 +204,7 @@ class PlanningGraph():
     graph can be used to reason about 
     '''
 
-    def __init__(self, problem: Problem, state: str, serial_planning=True, with_shortcut=False):
+    def __init__(self, problem: Problem, state: str, serial_planning=True, short_curcuit=False):
         '''
         :param problem: PlanningProblem (or subclass such as AirCargoProblem or HaveCakeProblem)
         :param state: str (will be in form TFTTFF... representing fluent states)
@@ -230,10 +230,11 @@ class PlanningGraph():
         self.all_actions = problem.all_actions
         self.actions_for_preconds = problem.actions_for_preconds
         self.goal_nodes = problem.goal_nodes
+        self.short_curcuit = short_curcuit
 
         self.s_levels = []  # type: List[List[PgNode_s]]
         self.a_levels = []  # type: List[List[PgNode_a]]
-        self.create_graph(with_shortcut)
+        self.create_graph()
 
     def precond_to_action(self, actions: Action):
         precond_map = {}
@@ -313,17 +314,19 @@ class PlanningGraph():
         # i.e. until it is "leveled"
         while not leveled:
             self.add_action_level(level)
-            self.update_a_mutex(self.a_levels[level])
+            if not self.short_curcuit:
+                self.update_a_mutex(self.a_levels[level])
 
             level += 1
             self.add_literal_level(level)
-            self.update_s_mutex(self.s_levels[level])
+            if not self.short_curcuit:
+                self.update_s_mutex(self.s_levels[level])
 
             if self.s_levels[level] == self.s_levels[level - 1]:
                 leveled = True
 
             # This is an problem-specific optimisation
-            if with_shortcut and self.goal_nodes.issubset(self.s_levels[level]):
+            if self.short_curcuit and self.goal_nodes.issubset(self.s_levels[level]):
                 return
 
         '''
@@ -346,6 +349,17 @@ class PlanningGraph():
             adds A nodes to the current level in self.a_levels[level]
         '''
 
+        # For the purpose of extracting the heuristic, we do not need to match the levels perfectly
+        if self.short_curcuit:
+            a_nodes = set()
+            actions = set()
+            for s_node in self.s_levels[level]:
+                for action in self.actions_for_preconds[s_node.literal]:
+                    actions.add(action)
+            self.a_levels.append(map(lambda action: PgNode_a(action), actions))
+            return
+
+        # Standard implementation of add_action_level
         possible_actions = set()
         s_nodes = self.s_levels[level]  # type: set(PgNode_s)
         for s_node in s_nodes:  # type: PgNode_s
@@ -354,12 +368,15 @@ class PlanningGraph():
 
         a_nodes = set()
         for action in possible_actions:
+            # We know that this action will be linked with at least an s_node, so let's create an a_node for it
             a_node = PgNode_a(action)
             # Find matching pairs of state-action
-            for matching_s_node in s_nodes.intersection(a_node.prenodes):  # type: PgNode_s
-                matching_s_node.children.add(a_node)
-                a_node.parents.add(matching_s_node)
-                a_nodes.add(a_node)
+            # We didn't use set.intersection here because that method always prioritise/uses the smaller set's elements
+            for matching_s_node in s_nodes:
+                if matching_s_node in a_node.prenodes:
+                    matching_s_node.children.add(a_node)
+                    a_node.parents.add(matching_s_node)
+                    a_nodes.add(a_node)
 
         self.a_levels.append(a_nodes)
 
@@ -595,4 +612,4 @@ class PlanningGraph():
             if goal_count == total_goal_count:
                 break
 
-        return level_sum
+        return level_sum if goal_count == total_goal_count else maxsize
